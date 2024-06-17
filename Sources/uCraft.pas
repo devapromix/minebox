@@ -2,7 +2,8 @@ unit uCraft;
 
 interface
 
-uses Classes;
+uses
+  Classes;
 
 type
   TItem = record
@@ -25,14 +26,18 @@ type
 function AddItem(ItemID: Integer; Count: Integer = 1): Boolean;
 
 var
-  PP: array [0..45] of TItem;
+  PP: array [0 .. 45] of TItem;
   MCD, RCD: TItem;
   PPM: Integer = 0;
   BRC: Integer = 0;
 
 implementation
 
-uses SysUtils, uVars, uGame, Utils;
+uses
+  SysUtils,
+  uVars,
+  uGame,
+  Utils;
 
 procedure ClearItems;
 var
@@ -65,7 +70,8 @@ var
   end;
 
 begin
-  if (Count < 1) or (Count > 9) then Count := 1;
+  if (Count < 1) or (Count > 9) then
+    Count := 1;
   J := -1;
   Result := False;
   for I := 0 to 31 do
@@ -76,12 +82,12 @@ begin
       Break;
     end;
   if (J = -1) then
-  for I := 0 to 31 do
-    if (PP[I].ItemID = 0) then
-    begin
-      Add();
-      Break;
-    end;
+    for I := 0 to 31 do
+      if (PP[I].ItemID = 0) then
+      begin
+        Add();
+        Break;
+      end;
 end;
 
 procedure TCraft.DoCraft;
@@ -110,23 +116,21 @@ begin
           end;
       end;
       J := 0;
-      for K := 32 to 40 do if (PP[K].ItemID > 0) then Inc(J);
+      for K := 32 to 40 do
+        if (PP[K].ItemID > 0) then
+          Inc(J);
       if (B = High(F) + 1) and (J = High(F) + 1) then
       begin
         RCD.ItemID := StrToInt(C[0]);
         RCD.Count := StrToInt(C[1]);
         Exit;
       end;
-    end else
-    if    (PP[32].ItemID = StrToInt(F[0]))
-      and (PP[33].ItemID = StrToInt(F[1]))
-      and (PP[34].ItemID = StrToInt(F[2]))
-      and (PP[35].ItemID = StrToInt(F[3]))
-      and (PP[36].ItemID = StrToInt(F[4]))
-      and (PP[37].ItemID = StrToInt(F[5]))
-      and (PP[38].ItemID = StrToInt(F[6]))
-      and (PP[39].ItemID = StrToInt(F[7]))
-      and (PP[40].ItemID = StrToInt(F[8])) then
+    end
+    else if (PP[32].ItemID = StrToInt(F[0])) and (PP[33].ItemID = StrToInt(F[1])
+      ) and (PP[34].ItemID = StrToInt(F[2])) and (PP[35].ItemID = StrToInt(F[3])
+      ) and (PP[36].ItemID = StrToInt(F[4])) and (PP[37].ItemID = StrToInt(F[5])
+      ) and (PP[38].ItemID = StrToInt(F[6])) and (PP[39].ItemID = StrToInt(F[7])
+      ) and (PP[40].ItemID = StrToInt(F[8])) then
     begin
       RCD.ItemID := StrToInt(C[0]);
       RCD.Count := StrToInt(C[1]);
@@ -155,8 +159,7 @@ var
   T, K: TStringList;
 begin
   ClearItems;
-  if FileExists(SavePath + '$')
-    and FileExists(SavePath + '$$') then
+  if FileExists(SavePath + '$') and FileExists(SavePath + '$$') then
   begin
     T := TStringList.Create;
     K := TStringList.Create;
@@ -166,7 +169,7 @@ begin
       for I := 0 to T.Count - 1 do
       begin
         PP[I].ItemID := StrToInt(T[I]);
-        PP[I].Count  := StrToInt(K[I]);
+        PP[I].Count := StrToInt(K[I]);
       end;
     finally
       T.Free;
@@ -184,11 +187,11 @@ begin
   K := TStringList.Create;
   try
     for I := 0 to High(PP) do
-    with PP[I] do
-    begin
-      T.Append(IntToStr(ItemID));
-      K.Append(IntToStr(Count));
-    end;
+      with PP[I] do
+      begin
+        T.Append(IntToStr(ItemID));
+        K.Append(IntToStr(Count));
+      end;
     T.SaveToFile(SavePath + '$');
     K.SaveToFile(SavePath + '$$');
   finally

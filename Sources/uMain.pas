@@ -1,21 +1,27 @@
 unit uMain;
 
-interface     
+interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls;
+  Windows,
+  Messages,
+  SysUtils,
+  Variants,
+  Classes,
+  Graphics,
+  Controls,
+  Forms,
+  Dialogs,
+  ExtCtrls;
 
 type
-  TfMain = class(TForm) 
+  TfMain = class(TForm)
     Timer1: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure FormPaint(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure FormKeyDown(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
-    procedure FormMouseMove(Sender: TObject; Shift: TShiftState; X,
-      Y: Integer);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure FormMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure FormMouseWheelDown(Sender: TObject; Shift: TShiftState;
@@ -36,7 +42,13 @@ var
 
 implementation
 
-uses Stages, uVars, uGame, uRegions, Utils, uCraft;
+uses
+  Stages,
+  uVars,
+  uGame,
+  uRegions,
+  Utils,
+  uCraft;
 
 {$R *.dfm}
 
@@ -51,7 +63,7 @@ end;
 procedure TfMain.FormPaint(Sender: TObject);
 begin
   Game.Stages.Render;
-  Canvas.Draw(0, 0, Game.Graphic.BG);       
+  Canvas.Draw(0, 0, Game.Graphic.BG);
 end;
 
 procedure TfMain.FormDestroy(Sender: TObject);
@@ -66,8 +78,8 @@ begin
   FormPaint(Sender);
 end;
 
-procedure TfMain.FormMouseMove(Sender: TObject; Shift: TShiftState; X,
-  Y: Integer);
+procedure TfMain.FormMouseMove(Sender: TObject; Shift: TShiftState;
+  X, Y: Integer);
 begin
   Game.MousePos := Point(X, Y);
   FormPaint(Sender);

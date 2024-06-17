@@ -2,542 +2,558 @@ unit uGraphUtils;
 
 interface
 
-uses Windows, Types, Graphics, uVars;
+uses
+  Windows,
+  Types,
+  Graphics,
+  uVars;
 
 procedure RotateBitmap(Bitmap: TBitmap; Angle: Double; BackColor: TColor);
-procedure InclinationBitmap(Bitmap: TBitmap; Hor,
-  Ver: Double; BackColor: TColor);
+procedure InclinationBitmap(Bitmap: TBitmap; Hor, Ver: Double;
+  BackColor: TColor);
 procedure FlipBmp(Bitmap: TBitmap; FlipHor: Boolean = True);
 procedure Gamma(Bitmap: TBitmap; L: Double);
 procedure ModColors(Bitmap: TBitmap; Color: TColor);
 procedure ScaleBmp(Bitmap: TBitmap; CX, CY: Integer);
 procedure SplitImage(var Images: array of TBitmap; FileName: string;
   IsScale: Boolean; L: Integer = 0);
-//procedure Rectangle(Surface: TBitmap; Pos: TPoint; Color: Integer; Full: Boolean = False);
+// procedure Rectangle(Surface: TBitmap; Pos: TPoint; Color: Integer; Full: Boolean = False);
 
 implementation
+
 {
-procedure Rectangle(Surface: TBitmap; Pos: TPoint; Color: Integer; Full: Boolean = False);
-begin
+  procedure Rectangle(Surface: TBitmap; Pos: TPoint; Color: Integer; Full: Boolean = False);
+  begin
   Surface.Canvas.Pen.Color := Color;
   if not Full then Surface.Canvas.Brush.Style := bsClear
   else Surface.Canvas.Brush.Style := bsSolid;
   Surface.Canvas.Rectangle(Pos.X * 32 - 1, Pos.Y * Char.Height - 1,
-    Pos.X * Char.Width + Char.Width + 1, Pos.Y * Char.Height + Char.Height + 1);
-end;
+  Pos.X * Char.Width + Char.Width + 1, Pos.Y * Char.Height + Char.Height + 1);
+  end;
 }
 procedure RotateBitmap(Bitmap: TBitmap; Angle: Double; BackColor: TColor);
 
-type TRGB = record
+type
+  TRGB = record
 
-      B, G, R: Byte;
+    B, G, R: Byte;
+
+  end;
+
+  pRGB = ^TRGB;
+
+  pByteArray = ^TByteArray;
+
+  TByteArray = array [0 .. 32767] of Byte;
+
+  TRectList = array [1 .. 4] of TPoint;
+
+var
+  x, y, W, H, v1, v2: Integer;
+
+  Dest, Src: pRGB;
+
+  VertArray: array of pByteArray;
+
+  Bmp: TBitmap;
+
+  procedure SinCos(AngleRad: Double; var ASin, ACos: Double);
+
+  begin
+
+    ASin := Sin(AngleRad);
+
+    ACos := Cos(AngleRad);
+
+  end;
+
+  function RotateRect(const Rect: TRect; const Center: TPoint; Angle: Double)
+    : TRectList;
+
+  var
+    DX, DY: Integer;
+
+    SinAng, CosAng: Double;
+
+    function RotPoint(PX, PY: Integer): TPoint;
+
+    begin
+
+      DX := PX - Center.x;
+
+      DY := PY - Center.y;
+
+      Result.x := Center.x + Round(DX * CosAng - DY * SinAng);
+
+      Result.y := Center.y + Round(DX * SinAng + DY * CosAng);
 
     end;
 
-    pRGB = ^TRGB;
+  begin
 
-    pByteArray = ^TByteArray;
+    SinCos(Angle * (Pi / 180), SinAng, CosAng);
 
-    TByteArray = array[0..32767] of Byte;
+    Result[1] := RotPoint(Rect.Left, Rect.Top);
 
-    TRectList = array [1..4] of TPoint;
+    Result[2] := RotPoint(Rect.Right, Rect.Top);
 
- 
+    Result[3] := RotPoint(Rect.Right, Rect.Bottom);
 
-var x, y, W, H, v1, v2: Integer;
+    Result[4] := RotPoint(Rect.Left, Rect.Bottom);
 
-   Dest, Src: pRGB;
+  end;
 
-   VertArray: array of pByteArray;
+  function Min(A, B: Integer): Integer;
 
-   Bmp: TBitmap;
+  begin
 
- 
+    if A < B then
+      Result := A
 
-procedure SinCos(AngleRad: Double; var ASin, ACos: Double);
+    else
+      Result := B;
 
-begin
+  end;
 
-   ASin := Sin(AngleRad);
+  function Max(A, B: Integer): Integer;
 
-   ACos := Cos(AngleRad);
+  begin
 
-end;
+    if A > B then
+      Result := A
 
- 
+    else
+      Result := B;
 
-function RotateRect(const Rect: TRect; const Center: TPoint; Angle: Double): TRectList;
+  end;
 
-var DX, DY: Integer;
+  function GetRLLimit(const RL: TRectList): TRect;
 
-     SinAng, CosAng: Double;
+  begin
 
-   function RotPoint(PX, PY: Integer): TPoint;
+    Result.Left := Min(Min(RL[1].x, RL[2].x), Min(RL[3].x, RL[4].x));
 
-   begin
+    Result.Top := Min(Min(RL[1].y, RL[2].y), Min(RL[3].y, RL[4].y));
 
-     DX := PX - Center.x;
+    Result.Right := Max(Max(RL[1].x, RL[2].x), Max(RL[3].x, RL[4].x));
 
-     DY := PY - Center.y;
+    Result.Bottom := Max(Max(RL[1].y, RL[2].y), Max(RL[3].y, RL[4].y));
 
-     Result.x := Center.x + Round(DX * CosAng - DY * SinAng);
+  end;
 
-     Result.y := Center.y + Round(DX * SinAng + DY * CosAng);
+  procedure Rotate;
 
-   end;
+  var
+    x, y, xr, yr, yp: Integer;
 
-begin
+    ACos, ASin: Double;
 
-   SinCos(Angle * (Pi / 180), SinAng, CosAng);
+    Lim: TRect;
 
-   Result[1] := RotPoint(Rect.Left, Rect.Top);
+  begin
 
-   Result[2] := RotPoint(Rect.Right, Rect.Top);
+    W := Bmp.Width;
 
-   Result[3] := RotPoint(Rect.Right, Rect.Bottom);
+    H := Bmp.Height;
 
-   Result[4] := RotPoint(Rect.Left, Rect.Bottom);
+    SinCos(-Angle * Pi / 180, ASin, ACos);
 
-end;
+    Lim := GetRLLimit(RotateRect(Rect(0, 0, Bmp.Width, Bmp.Height),
+      Point(0, 0), Angle));
 
- 
+    Bitmap.Width := Lim.Right - Lim.Left;
 
-function Min(A, B: Integer): Integer;
+    Bitmap.Height := Lim.Bottom - Lim.Top;
 
-begin
+    Bitmap.Canvas.Brush.Color := BackColor;
 
-   if A < B then Result := A
+    Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
 
-            else Result := B;
+    for y := 0 to Bitmap.Height - 1 do
+    begin
 
-end;
+      Dest := Bitmap.ScanLine[y];
 
- 
+      yp := y + Lim.Top;
 
-function Max(A, B: Integer): Integer;
+      for x := 0 to Bitmap.Width - 1 do
+      begin
 
-begin
+        xr := Round(((x + Lim.Left) * ACos) - (yp * ASin));
 
-   if A > B then Result := A
+        yr := Round(((x + Lim.Left) * ASin) + (yp * ACos));
 
-            else Result := B;
+        if (xr > -1) and (xr < W) and (yr > -1) and (yr < H) then
+        begin
 
-end;
+          Src := Bmp.ScanLine[yr];
 
- 
+          Inc(Src, xr);
 
-function GetRLLimit(const RL: TRectList): TRect;
+          Dest^ := Src^;
 
-begin
+        end;
 
-   Result.Left := Min(Min(RL[1].x, RL[2].x), Min(RL[3].x, RL[4].x));
+        Inc(Dest);
 
-   Result.Top := Min(Min(RL[1].y, RL[2].y), Min(RL[3].y, RL[4].y));
+      end;
 
-   Result.Right := Max(Max(RL[1].x, RL[2].x), Max(RL[3].x, RL[4].x));
+    end;
 
-   Result.Bottom := Max(Max(RL[1].y, RL[2].y), Max(RL[3].y, RL[4].y));
-
-end;
-
- 
-
-procedure Rotate;
-
-var x, y, xr, yr, yp: Integer;
-
-     ACos, ASin: Double;
-
-     Lim: TRect;
+  end;
 
 begin
 
-   W := Bmp.Width;
+  Bitmap.PixelFormat := pf24Bit;
 
-   H := Bmp.Height;
+  Bmp := TBitmap.Create;
 
-   SinCos(-Angle * Pi/180, ASin, ACos);
+  try
 
-   Lim := GetRLLimit(RotateRect(Rect(0, 0, Bmp.Width, Bmp.Height), Point(0, 0), Angle));
+    Bmp.Assign(Bitmap);
 
-   Bitmap.Width := Lim.Right - Lim.Left;
+    W := Bitmap.Width - 1;
 
-   Bitmap.Height := Lim.Bottom - Lim.Top;
+    H := Bitmap.Height - 1;
 
-   Bitmap.Canvas.Brush.Color := BackColor;
+    if Frac(Angle) <> 0.0
 
-   Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
+    then
+      Rotate
 
-   for y := 0 to Bitmap.Height - 1 do begin
+    else
 
-     Dest := Bitmap.ScanLine[y];
+      case Trunc(Angle) of
 
-     yp := y + Lim.Top;
+        - 360, 0, 360, 720:
+          Exit;
 
-     for x := 0 to Bitmap.Width - 1 do begin
+        90, 270:
+          begin
 
-       xr := Round(((x + Lim.Left) * ACos) - (yp * ASin));
+            Bitmap.Width := H + 1;
 
-       yr := Round(((x + Lim.Left) * ASin) + (yp * ACos));
+            Bitmap.Height := W + 1;
 
-       if (xr > -1) and (xr < W) and (yr > -1) and (yr < H) then begin
+            SetLength(VertArray, H + 1);
 
-         Src := Bmp.ScanLine[yr];
+            v1 := 0;
 
-         Inc(Src, xr);
+            v2 := 0;
 
-         Dest^ := Src^;
+            if Angle = 90.0 then
+              v1 := H
 
-       end;
+            else
+              v2 := W;
 
-       Inc(Dest);
+            for y := 0 to H do
+              VertArray[y] := Bmp.ScanLine[Abs(v1 - y)];
 
-     end;
+            for x := 0 to W do
+            begin
 
-   end;
+              Dest := Bitmap.ScanLine[x];
+
+              for y := 0 to H do
+              begin
+
+                v1 := Abs(v2 - x) * 3;
+
+                with Dest^ do
+                begin
+
+                  B := VertArray[y, v1];
+
+                  G := VertArray[y, v1 + 1];
+
+                  R := VertArray[y, v1 + 2];
+
+                end;
+
+                Inc(Dest);
+
+              end;
+
+            end
+
+          end;
+
+        180:
+          begin
+
+            for y := 0 to H do
+            begin
+
+              Dest := Bitmap.ScanLine[y];
+
+              Src := Bmp.ScanLine[H - y];
+
+              Inc(Src, W);
+
+              for x := 0 to W do
+              begin
+
+                Dest^ := Src^;
+
+                Dec(Src);
+
+                Inc(Dest);
+
+              end;
+
+            end;
+
+          end;
+
+      else
+        Rotate;
+
+      end;
+
+  finally
+
+    Bmp.Free;
+
+  end;
 
 end;
 
- 
+procedure InclinationBitmap(Bitmap: TBitmap; Hor, Ver: Double;
+  BackColor: TColor);
 
-begin
-
-Bitmap.PixelFormat := pf24Bit;
-
-Bmp := TBitmap.Create;
-
-try
-
-   Bmp.Assign(Bitmap);
-
-   W := Bitmap.Width - 1;
-
-   H := Bitmap.Height - 1;
-
-   if Frac(Angle) <> 0.0
-
-     then Rotate
-
-     else
-
-   case Trunc(Angle) of
-
-     -360, 0, 360, 720: Exit;
-
-     90, 270: begin
-
-       Bitmap.Width := H + 1;
-
-       Bitmap.Height := W + 1;
-
-       SetLength(VertArray, H + 1);
-
-       v1 := 0;
-
-       v2 := 0;
-
-       if Angle = 90.0 then v1 := H
-
-                       else v2 := W;
-
-       for y := 0 to H do VertArray[y] := Bmp.ScanLine[Abs(v1 - y)];
-
-       for x := 0 to W do begin
-
-         Dest := Bitmap.ScanLine[x];
-
-         for y := 0 to H do begin
-
-           v1 := Abs(v2 - x)*3;
-
-           with Dest^ do begin
-
-             B := VertArray[y, v1];
-
-             G := VertArray[y, v1+1];
-
-             R := VertArray[y, v1+2];
-
-           end;
-
-           Inc(Dest);
-
-         end;
-
-       end
-
-     end;
-
-     180: begin
-
-       for y := 0 to H do begin
-
-         Dest := Bitmap.ScanLine[y];
-
-         Src := Bmp.ScanLine[H - y];
-
-         Inc(Src, W);
-
-         for x := 0 to W do begin
-
-           Dest^ := Src^;
-
-           Dec(Src);
-
-           Inc(Dest);
-
-         end;
-
-       end;
-
-     end;
-
-     else Rotate;
-
-   end;
-
-finally
-
-   Bmp.Free;
-
-end;
-
-end;
-
-procedure InclinationBitmap(Bitmap: TBitmap; Hor,
-  Ver: Double; BackColor: TColor);
-
-  function Tan(X: Extended): Extended;
-   // Tan := Sin(X) / Cos(X)
+  function Tan(x: Extended): Extended;
+  // Tan := Sin(X) / Cos(X)
   asm
-       FLD X
-       FPTAN
-       FSTP ST(0) // FPTAN pushes 1.0 after result
-       FWAIT
+    FLD X
+    FPTAN
+    FSTP ST(0) // FPTAN pushes 1.0 after result
+    FWAIT
   end;
 
 type
   TRGB = record
     B, G, R: Byte;
   end;
+
   pRGB = ^TRGB;
 
 var
 
-x, y, WW, HH, alpha: Integer;
+  x, y, WW, HH, alpha: Integer;
 
-OldPx, NewPx: PRGB;
+  OldPx, NewPx: pRGB;
 
-T: Double;
+  T: Double;
 
-Bmp: TBitmap;
+  Bmp: TBitmap;
 
 begin
 
-Bitmap.PixelFormat := pf24Bit;
+  Bitmap.PixelFormat := pf24Bit;
 
-Bmp := TBitmap.Create;
+  Bmp := TBitmap.Create;
 
-try
+  try
 
-   Bmp.Assign(Bitmap);
+    Bmp.Assign(Bitmap);
 
-   WW := Bitmap.Width;
+    WW := Bitmap.Width;
 
-   HH := Bitmap.Height;
+    HH := Bitmap.Height;
 
-   if Hor <> 0.0 then
+    if Hor <> 0.0 then
 
-   begin // ѕо горизонтали
+    begin // ѕо горизонтали
 
-     T := Tan(Hor * (Pi / 180));
+      T := Tan(Hor * (Pi / 180));
 
-     Inc(WW, Abs(Round(HH * T)));
+      Inc(WW, Abs(Round(HH * T)));
 
-     Bitmap.Width := WW;
+      Bitmap.Width := WW;
 
-     Bitmap.Canvas.Brush.Color := BackColor;
+      Bitmap.Canvas.Brush.Color := BackColor;
 
-     Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
+      Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
 
-     for y := 0 to HH - 1 do
+      for y := 0 to HH - 1 do
 
-     begin
+      begin
 
-       if T > 0 then
+        if T > 0 then
 
-         alpha := Round((HH - y) * T)
+          alpha := Round((HH - y) * T)
 
-       else
+        else
 
-         alpha := -Round(y * T);
+          alpha := -Round(y * T);
 
-       OldPx := Bmp.ScanLine[y];
+        OldPx := Bmp.ScanLine[y];
 
-       NewPx := Bitmap.ScanLine[y];
+        NewPx := Bitmap.ScanLine[y];
 
-       Inc(NewPx, Alpha);
+        Inc(NewPx, alpha);
 
-       for x := 0 to Bmp.Width - 1 do
+        for x := 0 to Bmp.Width - 1 do
 
-       begin
+        begin
 
-         NewPx^ := OldPx^;
+          NewPx^ := OldPx^;
 
-         Inc(NewPx);
+          Inc(NewPx);
 
-         Inc(OldPx);
+          Inc(OldPx);
 
-       end;
+        end;
 
-     end;
+      end;
 
-     Bmp.Assign(Bitmap);
+      Bmp.Assign(Bitmap);
 
-   end;
+    end;
 
-   if Ver <> 0.0 then
+    if Ver <> 0.0 then
 
-   begin // ѕо вертикали
+    begin // ѕо вертикали
 
-     T := Tan(Ver * (Pi / 180));
+      T := Tan(Ver * (Pi / 180));
 
-     Bitmap.Height := HH + Abs(Round(WW * T));
+      Bitmap.Height := HH + Abs(Round(WW * T));
 
-     Bitmap.Canvas.Brush.Color := BackColor;
+      Bitmap.Canvas.Brush.Color := BackColor;
 
-     Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
+      Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
 
-     for x := 0 to WW - 1 do
+      for x := 0 to WW - 1 do
 
-     begin
+      begin
 
-       if T > 0 then
+        if T > 0 then
 
-         alpha := Round((WW - x) * T)
+          alpha := Round((WW - x) * T)
 
-       else
+        else
 
-         alpha := -Round(x * T);
+          alpha := -Round(x * T);
 
-       for y := 0 to Bmp.Height - 1 do
+        for y := 0 to Bmp.Height - 1 do
 
-       begin
+        begin
 
-         NewPx := Bitmap.ScanLine[y + alpha];
+          NewPx := Bitmap.ScanLine[y + alpha];
 
-         OldPx := Bmp.ScanLine[y];
+          OldPx := Bmp.ScanLine[y];
 
-         Inc(OldPx, x);
+          Inc(OldPx, x);
 
-         Inc(NewPx, x);
+          Inc(NewPx, x);
 
-         NewPx^ := OldPx^;
+          NewPx^ := OldPx^;
 
-       end;
+        end;
 
-     end;
+      end;
 
-   end;
+    end;
 
-finally
+  finally
 
-   Bmp.Free;
+    Bmp.Free;
 
-end;
+  end;
 
 end;
 
 procedure FlipBmp(Bitmap: TBitmap; FlipHor: Boolean = True);
 var
 
-x, y, W, H: Integer;
+  x, y, W, H: Integer;
 
-Pixel_1, Pixel_2: PRGBTriple;
+  Pixel_1, Pixel_2: PRGBTriple;
 
-MemPixel: TRGBTriple;
+  MemPixel: TRGBTriple;
 
 begin
 
-Bitmap.PixelFormat := pf24Bit;
+  Bitmap.PixelFormat := pf24Bit;
 
-W := Bitmap.Width - 1;
+  W := Bitmap.Width - 1;
 
-H := Bitmap.Height - 1;
+  H := Bitmap.Height - 1;
 
-if FlipHor then {отражение по горизонтали}
+  if FlipHor then { отражение по горизонтали }
 
-   for y := 0 to H do
+    for y := 0 to H do
 
-   begin
+    begin
 
-     {помещаем оба указател€ на строку H:}
+      { помещаем оба указател€ на строку H: }
 
-     Pixel_1 := Bitmap.ScanLine[y];
+      Pixel_1 := Bitmap.ScanLine[y];
 
-     Pixel_2 := Bitmap.ScanLine[y];
+      Pixel_2 := Bitmap.ScanLine[y];
 
-     {помещаем второй указатель в конец строки:}
+      { помещаем второй указатель в конец строки: }
 
-     Inc(Pixel_2, W);
+      Inc(Pixel_2, W);
 
-     {цикл идЄт только до середины строки:}
+      { цикл идЄт только до середины строки: }
 
-     for x := 0 to W div 2 do
+      for x := 0 to W div 2 do
 
-     begin
+      begin
 
-       {симметричные точки обмениваютс€ цветами:}
+        { симметричные точки обмениваютс€ цветами: }
 
-       MemPixel := Pixel_1^;
+        MemPixel := Pixel_1^;
 
-       Pixel_1^ := Pixel_2^;
+        Pixel_1^ := Pixel_2^;
 
-       Pixel_2^ := MemPixel;
+        Pixel_2^ := MemPixel;
 
-       Inc(Pixel_1); {смещаем указатель вправо}
+        Inc(Pixel_1); { смещаем указатель вправо }
 
-       Dec(Pixel_2); {смещаем указатель влево}
+        Dec(Pixel_2); { смещаем указатель влево }
 
-     end;
+      end;
 
-   end
+    end
 
-else {отражение по вертикали}
+  else { отражение по вертикали }
 
-   {цикл идЄт только до средней строки:}
+    { цикл идЄт только до средней строки: }
 
-   for y := 0 to H div 2 do
+    for y := 0 to H div 2 do
 
-   begin
+    begin
 
-     {помещаем первый указатель на строку H,
+      { помещаем первый указатель на строку H,
 
-      а второй на строку симметричную H:}
+        а второй на строку симметричную H: }
 
-     Pixel_1 := Bitmap.ScanLine[y];
+      Pixel_1 := Bitmap.ScanLine[y];
 
-     Pixel_2 := Bitmap.ScanLine[H - y];
+      Pixel_2 := Bitmap.ScanLine[H - y];
 
-     for x := 0 to W do
+      for x := 0 to W do
 
-     begin
+      begin
 
-       {симметричные точки обмениваютс€ цветами:}
+        { симметричные точки обмениваютс€ цветами: }
 
-       MemPixel := Pixel_1^;
+        MemPixel := Pixel_1^;
 
-       Pixel_1^ := Pixel_2^;
+        Pixel_1^ := Pixel_2^;
 
-       Pixel_2^ := MemPixel;
+        Pixel_2^ := MemPixel;
 
-       Inc(Pixel_1); {смещаем указатель вправо}
+        Inc(Pixel_1); { смещаем указатель вправо }
 
-       Inc(Pixel_2); {смещаем указатель вправо}
+        Inc(Pixel_2); { смещаем указатель вправо }
 
-     end;
+      end;
 
-   end;
+    end;
 
 end;
 
@@ -552,22 +568,25 @@ type
   TRGB = record
     B, G, R: Byte;
   end;
+
   pRGB = ^TRGB;
 
 var
   Dest: pRGB;
-  X, Y: Word;
-  GT: array[0..255] of Byte;
+  x, y: Word;
+  GT: array [0 .. 255] of Byte;
 
 begin
   Bitmap.PixelFormat := pf24Bit;
   GT[0] := 0;
-  if L = 0 then L := 0.01;
-  for X := 1 to 255 do GT[X] := Round(255 * Power(X / 255, 1 / L));
-  for Y := 0 to Bitmap.Height - 1 do
+  if L = 0 then
+    L := 0.01;
+  for x := 1 to 255 do
+    GT[x] := Round(255 * Power(x / 255, 1 / L));
+  for y := 0 to Bitmap.Height - 1 do
   begin
     Dest := Bitmap.ScanLine[y];
-    for X := 0 to Bitmap.Width - 1 do
+    for x := 0 to Bitmap.Width - 1 do
     begin
       with Dest^ do
       begin
@@ -599,16 +618,20 @@ procedure ModColors(Bitmap: TBitmap; Color: TColor);
 
   function BLimit(B: Integer): Byte;
   begin
-    if B < 0 then Result := 0
-      else if B > 255 then Result := 255
-        else Result := B;
+    if B < 0 then
+      Result := 0
+    else if B > 255 then
+      Result := 255
+    else
+      Result := B;
   end;
 
-type TRGB = record
-  B, G, R: Byte;
-end;
+type
+  TRGB = record
+    B, G, R: Byte;
+  end;
 
-pRGB = ^TRGB;
+  pRGB = ^TRGB;
 
 var
   r1, g1, b1: Byte;
@@ -628,7 +651,7 @@ begin
     begin
       with Dest^ do
       begin
-        A := (r + b + g) / 300;
+        A := (R + B + G) / 300;
         with Dest^ do
         begin
           R := BLimit(Round(r1 * A));
@@ -658,13 +681,16 @@ begin
   end;
 end;
 
-procedure SplitImage(var Images: array of TBitmap;
-  FileName: string; IsScale: Boolean; L: Integer = 0);
+procedure SplitImage(var Images: array of TBitmap; FileName: string;
+  IsScale: Boolean; L: Integer = 0);
 var
   B: TBitmap;
   I, J, CS: Integer;
 begin
-  if not IsScale then CS := CellSize else CS := 16;
+  if not IsScale then
+    CS := CellSize
+  else
+    CS := 16;
   B := TBitmap.Create;
   try
     B.LoadFromFile(FileName);
@@ -673,12 +699,13 @@ begin
         with Images[L] do
         begin
           Width := CS;
-          Height := CS; 
+          Height := CS;
           PixelFormat := pf24Bit;
           Transparent := False;
           Canvas.CopyRect(Bounds(0, 0, CS, CS), B.Canvas,
             Bounds(I * CS, J * CS, CS, CS));
-          if IsScale then ScaleBmp(Images[L], CellSize, CellSize);
+          if IsScale then
+            ScaleBmp(Images[L], CellSize, CellSize);
           case L of
             bLeaves:
               ModColors(Images[L], clGreen);

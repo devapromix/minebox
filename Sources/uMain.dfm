@@ -6,7 +6,7 @@ object fMain: TfMain
   BorderStyle = bsSingle
   Caption = 'MineBox'
   ClientHeight = 319
-  ClientWidth = 298
+  ClientWidth = 454
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText

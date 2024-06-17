@@ -2,12 +2,16 @@ unit uGraphics;
 
 interface
 
-uses Windows, Types, Graphics, uCraft;
+uses
+  Windows,
+  Types,
+  Graphics,
+  uCraft;
 
 const
   FrameSize = 4;
   CraftSize = 3;
-  InvWidth  = 8;
+  InvWidth = 8;
   InvHeight = 4;
 
 type
@@ -74,8 +78,8 @@ type
   public
     BG, SD: TBitmap;
     Marker, GameMarker, RedGameMarker, PB, PHL, PHR, CP, HP, HG: TBitmap;
-    DeepBlocks, Blocks: array [0..256 - 1] of TBitmap;
-    Items: array [0..256 * 3] of TBitmap;
+    DeepBlocks, Blocks: array [0 .. 256 - 1] of TBitmap;
+    Items: array [0 .. 256 * 3] of TBitmap;
     procedure DrawCell(X, Y: Integer);
     function IsTransparentBlock(BlockID: Integer): Boolean;
     procedure SetTransparentBlocks();
@@ -85,7 +89,7 @@ type
     procedure RefreshGame;
     procedure DrawBlock(AX, AY: Integer; AItem: TItem; IsGray: Boolean = False);
     procedure DrawInfo;
-    procedure MakeSDCraft; 
+    procedure MakeSDCraft;
     procedure DrawPlayer;
     constructor Create;
     destructor Destroy; override;
@@ -93,8 +97,16 @@ type
 
 implementation
 
-uses SysUtils, Dialogs, uMain, uVars, uRegions, Player, uGame,
-  uGraphUtils, Utils;
+uses
+  SysUtils,
+  Dialogs,
+  uMain,
+  uVars,
+  uRegions,
+  Player,
+  uGame,
+  uGraphUtils,
+  Utils;
 
 { TGraphic }
 
@@ -102,9 +114,10 @@ function TGraphic.IsTransparentBlock(BlockID: Integer): Boolean;
 begin
   case BlockID of
     bLeaves, bPapirus, bRose, bDandelion, bMushroom1, bMushroom2, bLadder,
-    bTorch, bDoor1, bOpenDoor1, bOpenDoor2, bNet
-      : Result := True;
-    else Result := False;
+      bTorch, bDoor1, bOpenDoor1, bOpenDoor2, bNet:
+      Result := True;
+  else
+    Result := False;
   end;
 end;
 
@@ -133,17 +146,19 @@ begin
   for I := 0 to High(Blocks) do
   begin
     DeepBlocks[I].Assign(Blocks[I]);
-    if not IsTransparentBlock(I) then Gamma(DeepBlocks[I], 0.7);
+    if not IsTransparentBlock(I) then
+      Gamma(DeepBlocks[I], 0.7);
   end;
   // Load add blocks
   Blocks[bOpenDoor1].LoadFromFile(DataPath + 'OpenDoor.bmp');
   Blocks[bOpenDoor2].LoadFromFile(DataPath + 'OpenDoor.bmp');
   SetTransparentBlocks();
   // Items
-  for I := 0 to High(Items) do Items[I] := TBitmap.Create;
+  for I := 0 to High(Items) do
+    Items[I] := TBitmap.Create;
   SplitImage(Items, DataPath + 'Terrain.bmp', True);
   SplitImage(Items, DataPath + 'Items.bmp', True, 256);
-  SplitImage(Items, DataPath + 'Blocks.bmp', False, 256 * 2);
+  SplitImage(Items, DataPath + 'Blocks.bmp', True, 256 * 2);
   for I := 0 to High(Items) do
   begin
     Items[I].Transparent := IsTransparent;
@@ -169,9 +184,11 @@ begin
   HP.LoadFromFile(DataPath + 'Bars.bmp');
   HG := TBitmap.Create;
   HG.Transparent := True;
-  HG.Width := 8; HG.Height := 8;
+  HG.Width := 8;
+  HG.Height := 8;
   HG.Canvas.CopyRect(Bounds(0, 0, 8, 8), HP.Canvas, Bounds(8, 0, 8, 8));
-  HP.Width := 8; HP.Height := 8;
+  HP.Width := 8;
+  HP.Height := 8;
   GameMarker := TBitmap.Create;
   GameMarker.Transparent := True;
   GameMarker.LoadFromFile(DataPath + 'Border.bmp');
@@ -200,8 +217,8 @@ var
 begin
   for I := 0 to High(Blocks) do
   begin
-    Blocks[i].Free;
-    DeepBlocks[i].Free;
+    Blocks[I].Free;
+    DeepBlocks[I].Free;
   end;
   GameMarker.Free;
   Marker.Free;
@@ -212,7 +229,7 @@ begin
   SD.Free;
   HP.Free;
   HG.Free;
-  inherited;    
+  inherited;
 end;
 
 procedure TGraphic.Draw;
@@ -222,38 +239,38 @@ end;
 
 procedure TGraphic.DrawInfo;
 begin
-  {if IsDrawInfo then
-  with fMain do
-  case Scene of
+  { if IsDrawInfo then
+    with fMain do
+    case Scene of
     scGame:
     begin
-      BG.Canvas.TextOut(32, 32,  'PC.X = ' + IntToStr(Game.Player.X + (HalfScreenWidth - 1)));
-      BG.Canvas.TextOut(32, 48,  'PC.Y = ' + IntToStr(Game.Player.Y + HalfScreenHeight));
-      BG.Canvas.TextOut(32, 64,  'Reg.X = ' + IntToStr(RegionPoint.X));
-      BG.Canvas.TextOut(32, 80,  'Reg.Y = ' + IntToStr(RegionPoint.Y));
-      BG.Canvas.TextOut(32, 96,  'BaseLine = ' + IntToStr(BaseLine));
-      BG.Canvas.TextOut(32, 112, 'TGL = ' + IntToStr(BaseLine * ScreenHeight + Game.Y));
-      BG.Canvas.TextOut(32, 128, 'Density = ' + IntToStr(Density));
-      BG.Canvas.TextOut(32, 144, 'Cell = ' +
-        IntToStr(Ord(RMap[Game.X + ScreenWidth + (HalfScreenWidth - 1),
-          Game.Y + ScreenHeight + (HalfScreenHeight + 2), 1].Block) - BS));
-      BG.Canvas.TextOut(32, 160, 'MX = ' + IntToStr(Game.MX div 32));
-      BG.Canvas.TextOut(32, 176, 'MY = ' + IntToStr(Game.MY div 32));
-      BG.Canvas.TextOut(32, 192, 'GameX = ' + IntToStr(Game.X));
-      BG.Canvas.TextOut(32, 208, 'GameY = ' + IntToStr(Game.Y));
+    BG.Canvas.TextOut(32, 32,  'PC.X = ' + IntToStr(Game.Player.X + (HalfScreenWidth - 1)));
+    BG.Canvas.TextOut(32, 48,  'PC.Y = ' + IntToStr(Game.Player.Y + HalfScreenHeight));
+    BG.Canvas.TextOut(32, 64,  'Reg.X = ' + IntToStr(RegionPoint.X));
+    BG.Canvas.TextOut(32, 80,  'Reg.Y = ' + IntToStr(RegionPoint.Y));
+    BG.Canvas.TextOut(32, 96,  'BaseLine = ' + IntToStr(BaseLine));
+    BG.Canvas.TextOut(32, 112, 'TGL = ' + IntToStr(BaseLine * ScreenHeight + Game.Y));
+    BG.Canvas.TextOut(32, 128, 'Density = ' + IntToStr(Density));
+    BG.Canvas.TextOut(32, 144, 'Cell = ' +
+    IntToStr(Ord(RMap[Game.X + ScreenWidth + (HalfScreenWidth - 1),
+    Game.Y + ScreenHeight + (HalfScreenHeight + 2), 1].Block) - BS));
+    BG.Canvas.TextOut(32, 160, 'MX = ' + IntToStr(Game.MX div 32));
+    BG.Canvas.TextOut(32, 176, 'MY = ' + IntToStr(Game.MY div 32));
+    BG.Canvas.TextOut(32, 192, 'GameX = ' + IntToStr(Game.X));
+    BG.Canvas.TextOut(32, 208, 'GameY = ' + IntToStr(Game.Y));
     end;
     scCraft:
     begin }
-      BG.Canvas.TextOut(32, 32,  'MX = ' + IntToStr(Game.MousePos.X));
-      BG.Canvas.TextOut(32, 48,  'MY = ' + IntToStr(Game.MousePos.Y));
-    //end;
-  //end;
+  BG.Canvas.TextOut(32, 32, 'MX = ' + IntToStr(Game.MousePos.X));
+  BG.Canvas.TextOut(32, 48, 'MY = ' + IntToStr(Game.MousePos.Y));
+  // end;
+  // end;
 end;
 
-procedure TGraphic.MakeSDCraft;  
+procedure TGraphic.MakeSDCraft;
 var
   X, Y: Integer;
-//  A, R: TBitmap;
+  // A, R: TBitmap;
 begin
   with fMain do
   begin
@@ -265,41 +282,41 @@ begin
         if (X <= 10) or (X >= 19) or (Y <= 5) or (Y >= 15) then
           DrawCell(X, Y);
     ModColors(BG, clGray);
-{
+    {
 
 
 
-    A := TBitmap.Create;
-    R := TBitmap.Create;
-    R.Width := 32;
-    R.Height := 32;
+      A := TBitmap.Create;
+      R := TBitmap.Create;
+      R.Width := 32;
+      R.Height := 32;
 
 
-    A.Assign(PLL);
-//    Gamma(A, 0.8);
-    InclinationBitmap(A, 0, -25, clFuchsia);
-    A.Transparent := True;
-    R.Canvas.Draw(32 - 32, 32 - 24, A);
-    A.Assign(PLL);
-//    Gamma(A, 0.6);
-    InclinationBitmap(A, 0, 25, clFuchsia);
-    A.Transparent := True;
-    A.TransparentColor := clFuchsia;
-    R.Canvas.Draw(48 - 32, 32 - 24, A);
-    A.Assign(PLL);
-    RotateBitmap(A, 45, clFuchsia);
-//    ScaleBmp(A, 32, 16 + 1);
-    A.Transparent := True;
-    R.Canvas.Draw(32 - 32, 24 - 24, A);
-    ScaleBmp(R, 26, 32);
+      A.Assign(PLL);
+      //    Gamma(A, 0.8);
+      InclinationBitmap(A, 0, -25, clFuchsia);
+      A.Transparent := True;
+      R.Canvas.Draw(32 - 32, 32 - 24, A);
+      A.Assign(PLL);
+      //    Gamma(A, 0.6);
+      InclinationBitmap(A, 0, 25, clFuchsia);
+      A.Transparent := True;
+      A.TransparentColor := clFuchsia;
+      R.Canvas.Draw(48 - 32, 32 - 24, A);
+      A.Assign(PLL);
+      RotateBitmap(A, 45, clFuchsia);
+      //    ScaleBmp(A, 32, 16 + 1);
+      A.Transparent := True;
+      R.Canvas.Draw(32 - 32, 24 - 24, A);
+      ScaleBmp(R, 26, 32);
 
-    BG.Canvas.Draw(32, 32, R);
-    A.Free;
-    R.Free;
+      BG.Canvas.Draw(32, 32, R);
+      A.Free;
+      R.Free;
 
 
 
-}
+    }
     SD.Assign(BG);
   end;
 end;
@@ -325,12 +342,15 @@ begin
     DrawPlayer;
     Game.Panel.Render;
     DrawInfo;
-    if Game.IsDist then BG.Canvas.Draw(Game.MousePos.X div 32 * 32, Game.MousePos.Y div 32 * 32, GameMarker);
+    if Game.IsDist then
+      BG.Canvas.Draw(Game.MousePos.X div 32 * 32, Game.MousePos.Y div 32 * 32,
+        GameMarker);
     BG.Canvas.TextOut(900, 32, IntToStr(GetTickCount - T) + ' ms');
   end;
 end;
 
-procedure TGraphic.DrawBlock(AX, AY: Integer; AItem: TItem; IsGray: Boolean = False);
+procedure TGraphic.DrawBlock(AX, AY: Integer; AItem: TItem;
+  IsGray: Boolean = False);
 var
   S: string;
   A: TSize;
@@ -342,13 +362,13 @@ begin
     try
       T.Assign(Items[AItem.ItemID]);
       if (AItem.Count > 1) then
-      with T.Canvas do
-      begin
-        Brush.Style := bsClear;
-        S := IntToStr(AItem.Count);
-        A := TextExtent(S);
-        TextOut(27 - A.CX, 32 - A.CY, S);
-      end;
+        with T.Canvas do
+        begin
+          Brush.Style := bsClear;
+          S := IntToStr(AItem.Count);
+          A := TextExtent(S);
+          TextOut(27 - A.CX, 32 - A.CY, S);
+        end;
       ModColors(T, clGray);
       BG.Canvas.Draw(AX, AY, T);
     finally
@@ -372,33 +392,46 @@ procedure TGraphic.DrawPlayer;
 var
   T, Y: Integer;
 begin
-  BG.Canvas.Draw((HalfScreenWidth - 1) * CellSize + 10, HalfScreenHeight * CellSize + 18, PB);
+  BG.Canvas.Draw((HalfScreenWidth - 1) * CellSize + 10,
+    HalfScreenHeight * CellSize + 18, PB);
   if Game.Player.MoveToRight then
-    BG.Canvas.Draw((HalfScreenWidth - 1) * CellSize + 7, HalfScreenHeight * CellSize, PHR)
-      else
-        BG.Canvas.Draw((HalfScreenWidth - 1) * CellSize + 7, HalfScreenHeight * CellSize, PHL);
+    BG.Canvas.Draw((HalfScreenWidth - 1) * CellSize + 7,
+      HalfScreenHeight * CellSize, PHR)
+  else
+    BG.Canvas.Draw((HalfScreenWidth - 1) * CellSize + 7,
+      HalfScreenHeight * CellSize, PHL);
   for Y := 10 to 11 do
   begin
-    T := Ord(RMap[Game.Pos.X + ScreenWidth + 14, Game.Pos.Y + ScreenHeight + Y, 2].Block) - BS;
-    if (T > 0) then BG.Canvas.Draw(CellSize * 14, CellSize * Y, Blocks[T]);
+    T := Ord(RMap[Game.Pos.X + ScreenWidth + 14, Game.Pos.Y + ScreenHeight + Y,
+      2].Block) - BS;
+    if (T > 0) then
+      BG.Canvas.Draw(CellSize * 14, CellSize * Y, Blocks[T]);
   end;
 end;
 
 function TGraphic.GetCell(AX, AY, AZ: Integer): Integer;
 begin
-  Result := Ord(RMap[Game.Pos.X + ScreenWidth + AX, Game.Pos.Y + ScreenHeight + AY, AZ].Block) - BS;
-  if (Result > 255) or (Result < 0) then Result := 0;
+  Result := Ord(RMap[Game.Pos.X + ScreenWidth + AX, Game.Pos.Y + ScreenHeight +
+    AY, AZ].Block) - BS;
+  if (Result > 255) or (Result < 0) then
+    Result := 0;
 end;
 
 procedure TGraphic.DrawCell(X, Y: Integer);
 var
   R0, R1, R2: Integer;
 begin
-  R0 := 0; R1 := GetCell(X, Y, 1); R2 := GetCell(X, Y, 2);
-  if IsTransparentBlock(R1) or (R1 = 0) then R0 := GetCell(X, Y, 0);
-  if (R0 > 0) then BG.Canvas.Draw(X * CellSize, Y * CellSize, DeepBlocks[R0]);
-  if (R1 > 0) then BG.Canvas.Draw(X * CellSize, Y * CellSize, Blocks[R1]);
-  if (R2 > 0) then BG.Canvas.Draw(X * CellSize, Y * CellSize, Blocks[R2]);
+  R0 := 0;
+  R1 := GetCell(X, Y, 1);
+  R2 := GetCell(X, Y, 2);
+  if IsTransparentBlock(R1) or (R1 = 0) then
+    R0 := GetCell(X, Y, 0);
+  if (R0 > 0) then
+    BG.Canvas.Draw(X * CellSize, Y * CellSize, DeepBlocks[R0]);
+  if (R1 > 0) then
+    BG.Canvas.Draw(X * CellSize, Y * CellSize, Blocks[R1]);
+  if (R2 > 0) then
+    BG.Canvas.Draw(X * CellSize, Y * CellSize, Blocks[R2]);
 end;
 
 procedure TGraphic.SetTransparentBlocks;
@@ -488,7 +521,8 @@ begin
     for I := 0 to Game.Player.Life - 1 do
       Game.Graphic.BG.Canvas.Draw(Left + (I * 10), Top - 10, Game.Graphic.HP);
     for I := Game.Player.Hung - 1 downto 0 do
-      Game.Graphic.BG.Canvas.Draw(Left + Surface.Width - 8 - (I * 10), Top - 10, Game.Graphic.HG);
+      Game.Graphic.BG.Canvas.Draw(Left + Surface.Width - 8 - (I * 10), Top - 10,
+        Game.Graphic.HG);
   end;
   for I := 0 to 7 do
     if (PP[I].ItemID > 0) and (PP[I].Count > 0) then
@@ -547,7 +581,8 @@ begin
   Surface.Width := CellSize + (FrameSize * 2);
   Surface.Height := CellSize + (FrameSize * 2);
   Surface.Canvas.FillRect(Rect(0, 0, Surface.Width, Surface.Height));
-  FLeft := (HalfScreenWidth * CellSize) - (Surface.Width div 2) + (CellSize * 3) - (FrameSize * 2);
+  FLeft := (HalfScreenWidth * CellSize) - (Surface.Width div 2) + (CellSize * 3)
+    - (FrameSize * 2);
   FTop := HalfScreenHeight * CellSize - (CellSize * 2) - (FrameSize * 3);
   Rectangle(FrameSize, FrameSize);
 end;
@@ -613,9 +648,10 @@ begin
           Y * (CellSize + FrameSize) + Top + FrameSize, PP[I]);
       end;
     end;
-  CraftCells.Render;   
+  CraftCells.Render;
   RCraftCell.Render;
-  Game.Graphic.BG.Canvas.Draw(Left + (PPM * (CellSize + FrameSize)), Top, Game.Graphic.Marker);
+  Game.Graphic.BG.Canvas.Draw(Left + (PPM * (CellSize + FrameSize)), Top,
+    Game.Graphic.Marker);
   Game.Panel.Render(True);
   if (MCD.ItemID > 0) and (MCD.Count > 0) then
     Game.Graphic.DrawBlock(Game.MousePos.X, Game.MousePos.Y, MCD);

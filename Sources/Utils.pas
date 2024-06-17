@@ -2,10 +2,11 @@ unit Utils;
 
 interface
 
-uses Classes;
+uses
+  Classes;
 
 type
-  TExplodeResult  = array of string;
+  TExplodeResult = array of string;
 
 function Clamp(Value, AMin, AMax: Integer; Flag: Boolean = True): Integer;
 function GetStr(const Separator: Char; S: string; I: Integer): string;
@@ -19,12 +20,14 @@ procedure Box(const S: string); overload;
 procedure Box(const I: Integer); overload;
 function Rand(A, B: Integer): Integer;
 function GetDist(x1, y1, x2, y2: single): word;
-function Explode(const StringSeparator: Char;
-  Source: string): TExplodeResult;
+function Explode(const StringSeparator: Char; Source: string): TExplodeResult;
 
 implementation
 
-uses Math, SysUtils, Dialogs;
+uses
+  Math,
+  SysUtils,
+  Dialogs;
 
 function Clamp(Value, AMin, AMax: Integer; Flag: Boolean = True): Integer;
 begin
@@ -101,11 +104,10 @@ end;
 
 function GetDist(x1, y1, x2, y2: single): word;
 begin
-  result := round(sqrt(sqr(x2 - x1) + sqr(y2 - y1)));
+  Result := Round(sqrt(sqr(x2 - x1) + sqr(y2 - y1)));
 end;
 
-function Explode(const StringSeparator: Char;
-  Source: string): TExplodeResult;
+function Explode(const StringSeparator: Char; Source: string): TExplodeResult;
 var
   I: Integer;
   S: string;

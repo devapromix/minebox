@@ -2,7 +2,8 @@ unit Player;
 
 interface
 
-uses Types;
+uses
+  Types;
 
 type
   TPlayer = class
@@ -28,7 +29,14 @@ type
 
 implementation
 
-uses SysUtils, Classes, Dialogs, uCraft, uVars, uRegions, uGame;
+uses
+  SysUtils,
+  Classes,
+  Dialogs,
+  uCraft,
+  uVars,
+  uRegions,
+  uGame;
 
 { TPlayer }
 
@@ -85,7 +93,7 @@ begin
   end;
   if (Life <= 0) then
   begin
-    //Scene := scDefeat;
+    // Scene := scDefeat;
     Game.Graphic.Draw;
   end;
 end;
